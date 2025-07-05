@@ -30,6 +30,7 @@ from silent_tools import silent_tools
 
 # PyRosetta imports removed - using SimpleStructure instead
 from simple_structure import SimpleStructure, load_from_pdb_dir, load_from_pdb_list
+from robust_structure_handler import RobustStructureHandler, prepare_structure_for_af2
 
 # Try to import BioPython
 try:
@@ -66,6 +67,13 @@ parser.add_argument( "-runlist", type=str, default='', help="The path of a list 
 parser.add_argument( "-checkpoint_name", type=str, default='check.point', help="The name of a file where tags which have finished will be written (default: check.point)" )
 parser.add_argument( "-scorefilename", type=str, default='out.sc', help="The name of a file where scores will be written (default: out.sc)" )
 parser.add_argument( "-maintain_res_numbering", action="store_true", default=False, help='When active, the model will not renumber the residues when bad inputs are encountered (default: False)' )
+
+# Enhanced Structure Handling Arguments
+parser.add_argument( "-binder_chain", type=str, default="", help='Chain ID of the binder (e.g., A). If not specified, auto-detection will be used' )
+parser.add_argument( "-target_chain", type=str, default="", help='Chain ID of the target (e.g., B). If not specified, auto-detection will be used' )
+parser.add_argument( "-auto_renumber", action="store_true", default=True, help='Automatically renumber residues to ensure uniqueness (default: True)' )
+parser.add_argument( "-auto_clean", action="store_true", default=True, help='Automatically clean structure (remove waters, hetero atoms) (default: True)' )
+parser.add_argument( "-strict_validation", action="store_true", default=False, help='Fail on any structure validation warnings (default: False)' )
 
 parser.add_argument( "-debug", action="store_true", default=False, help='When active, errors will cause the script to crash and the error message to be printed out (default: False)')
 
@@ -511,7 +519,27 @@ class StructManager():
 
         if self.pdb:
             if BIOPYTHON_AVAILABLE:
-                pose = SimpleStructure(tag)
+                # Use robust structure handler for better edge case handling
+                binder_chain = args.binder_chain if args.binder_chain else None
+                target_chain = args.target_chain if args.target_chain else None
+                
+                try:
+                    pose = prepare_structure_for_af2(
+                        pdb_file=tag,
+                        binder_chain=binder_chain,
+                        target_chain=target_chain,
+                        auto_clean=args.auto_clean,
+                        auto_renumber=args.auto_renumber
+                    )
+                    print(f"✅ Successfully prepared structure: {tag}")
+                except Exception as e:
+                    if args.strict_validation:
+                        raise Exception(f"Structure preparation failed for {tag}: {e}")
+                    else:
+                        print(f"⚠️  Warning: Structure preparation failed for {tag}: {e}")
+                        print("   Falling back to basic SimpleStructure loading...")
+                        pose = SimpleStructure(tag)
+                        
             elif PYROSETTA_AVAILABLE:
                 pose = pose_from_pdb(tag)
             else:

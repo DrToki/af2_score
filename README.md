@@ -137,21 +137,69 @@ These pdb files can be collected into a silent file (or just used as PDB files) 
 
 ## AlphaFold2 Complex Prediction <a name="inf3"></a>
 
-Running the interface prediction script is simple:
+### 🚀 Enhanced Pipeline (PyRosetta-Free Option)
 
+The AF2 prediction pipeline now supports both traditional silent files and direct PDB file processing:
+
+#### Option 1: PDB Files (No PyRosetta Required)
+```bash
+# Simple automatic processing
+<base_dir>/af2_initial_guess/predict.py -pdbdir /path/to/pdbs/
+
+# With manual chain specification  
+<base_dir>/af2_initial_guess/predict.py -pdbdir /path/to/pdbs/ -binder_chain A -target_chain B
 ```
+
+#### Option 2: Silent Files (PyRosetta Required)
+```bash
+# Traditional workflow
 <base_dir>/af2_initial_guess/predict.py -silent my_designs.silent
 ```
 
-This will create a file titled `out.silent` containing the AF2 predictions of your designs. It will also output a file titled `out.sc` with the scores of the designs, `pae_interaction` is the score that showed the most predictivity in the experiments performed in the paper.
+### 🛡️ Robust Edge Case Handling
 
-With the refactor, this script is now able to read and write PDB and silent files as well as perform both monomer and complex predictions. The arguments for these can be listed by running:
+The enhanced pipeline automatically handles common PDB file issues:
 
-```
+- ✅ **Automatic residue renumbering** - No more "unique residue indices" requirement
+- ✅ **Smart chain detection** - Automatically identifies binder vs target chains  
+- ✅ **Structure cleaning** - Removes waters and hetero atoms automatically
+- ✅ **Flexible chain ordering** - Binder doesn't need to be the first chain
+- ✅ **Comprehensive validation** - Detailed error reporting and guidance
+
+### 📖 Documentation
+
+- **Quick Start**: See `INSTALLATION_GUIDE.md` for setup instructions
+- **Edge Cases**: See `ROBUST_USAGE_GUIDE.md` for handling problematic PDB files  
+- **Migration**: See `MIGRATION_SUMMARY.md` for PyRosetta → BioPython transition
+
+### 🔧 Command Line Options
+
+View all options:
+```bash
 <base_dir>/af2_initial_guess/predict.py -h
 ```
 
-NOTE: This script expects your binder design to be the first chain it receives. The binder will be predicted from single sequence and with an intial guess. The target chains will be fixed to the input structure. The script also expects your residue indices to be unique, ie. your binder and target cannot both start with residue 1.
+Key new arguments:
+- `-binder_chain`: Specify binder chain ID (e.g., A)
+- `-target_chain`: Specify target chain ID (e.g., B)  
+- `-auto_renumber`: Automatically fix residue numbering (default: True)
+- `-auto_clean`: Remove waters and hetero atoms (default: True)
+- `-strict_validation`: Fail on any validation warnings (default: False)
+
+### 📊 Outputs
+
+Both workflows create:
+- **Predicted structures**: `out.silent` or individual PDB files in `-outpdbdir`
+- **Scores**: `out.sc` with confidence metrics (`pae_interaction` is most predictive)
+
+### ⚠️ Legacy Note
+
+~~The script expects your binder design to be the first chain and residue indices to be unique~~ 
+
+**These limitations have been removed.** The enhanced pipeline automatically handles:
+- Any chain ordering
+- Overlapping residue numbering  
+- Common PDB format variations
 
 # Troubleshooting <a name="trb0"></a>
 
