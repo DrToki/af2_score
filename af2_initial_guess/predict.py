@@ -28,9 +28,26 @@ parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(parent, 'include'))
 from silent_tools import silent_tools
 
-from pyrosetta import *
-from rosetta import *
-init( '-in:file:silent_struct_type binary -mute all' )
+# PyRosetta imports removed - using SimpleStructure instead
+from simple_structure import SimpleStructure, load_from_pdb_dir, load_from_pdb_list
+
+# Try to import BioPython
+try:
+    from Bio.PDB import PDBParser, PDBIO
+    BIOPYTHON_AVAILABLE = True
+except ImportError:
+    print("Warning: BioPython not available. Install with: pip install biopython")
+    BIOPYTHON_AVAILABLE = False
+
+# Check if PyRosetta is available for silent file fallback
+try:
+    from pyrosetta import *
+    from rosetta import *
+    init( '-in:file:silent_struct_type binary -mute all' )
+    PYROSETTA_AVAILABLE = True
+except ImportError:
+    print("Warning: PyRosetta not available. Silent files will not work without PyRosetta.")
+    PYROSETTA_AVAILABLE = False
 
 def range1(size): return range(1, size+1)
 
@@ -65,14 +82,15 @@ class FeatureHolder():
     This is a struct which holds the features for a single structure being run through the model
     '''
 
-    def __init__(self, pose, monomer, binderlen, tag):
-        self.pose   = pose
-        self.tag    = tag
+    def __init__(self, structure, monomer, binderlen, tag):
+        self.structure = structure  # SimpleStructure instead of pose
+        self.pose = structure  # Keep for backwards compatibility
+        self.tag = tag
         self.outtag = self.tag + '_af2pred'
         
-        self.seq       = pose.sequence()
+        self.seq = structure.sequence()
         self.binderlen = binderlen
-        self.monomer   = monomer
+        self.monomer = monomer
         
         # Pre model features
         self.initial_all_atom_positions = None
@@ -365,24 +383,34 @@ class StructManager():
                 for line in f:
                     self.finished_structs.add(line.strip())
 
-    def input_check(self, pose, tag) -> bool:
+    def input_check(self, structure, tag) -> bool:
         '''
-        This function checks that the given pose is valid for AF2. It specifically
+        This function checks that the given structure is valid for AF2. It specifically
         checks that all residue indices are unique
         '''
         
         seen_indices = set()
         
-        # Loop through the PDBinfo of the pose and check that all residue indices are unique
-        pdbinfo = pose.pdb_info()
-        for resi in range1(pose.size()):
-            residx = pdbinfo.number(resi)
-            if residx in seen_indices:
-                print( f"\nNon-unique residue indices detected for tag: {tag}. " +
-                        "This will cause AF2 to yield garbage outputs." )
-                return False
-
-            seen_indices.add(residx)
+        # Check if it's SimpleStructure or PyRosetta pose
+        if hasattr(structure, 'residues'):
+            # SimpleStructure
+            for residue_info in structure.residues:
+                residx = residue_info['number']
+                if residx in seen_indices:
+                    print( f"\nNon-unique residue indices detected for tag: {tag}. " +
+                            "This will cause AF2 to yield garbage outputs." )
+                    return False
+                seen_indices.add(residx)
+        else:
+            # PyRosetta pose
+            pdbinfo = structure.pdb_info()
+            for resi in range1(structure.size()):
+                residx = pdbinfo.number(resi)
+                if residx in seen_indices:
+                    print( f"\nNon-unique residue indices detected for tag: {tag}. " +
+                            "This will cause AF2 to yield garbage outputs." )
+                    return False
+                seen_indices.add(residx)
         
         return True
 
@@ -482,10 +510,17 @@ class StructManager():
             raise Exception('Neither pdb nor silent is set to True. Cannot load pose')
 
         if self.pdb:
-            pose = pose_from_pdb(tag)
+            if BIOPYTHON_AVAILABLE:
+                pose = SimpleStructure(tag)
+            elif PYROSETTA_AVAILABLE:
+                pose = pose_from_pdb(tag)
+            else:
+                raise Exception("Neither BioPython nor PyRosetta available for PDB loading")
             usetag = '.'.join(os.path.basename(tag).split('.')[:-1])
         
         if self.silent:
+            if not PYROSETTA_AVAILABLE:
+                raise Exception("PyRosetta required for silent file support")
             pose = Pose()
             usetag = tag
             self.sfd_in.get_structure(tag).fill_pose(pose)
@@ -497,8 +532,12 @@ class StructManager():
             if not self.maintain_res_numbering:
                 print( f"Renumbering {tag}" )
                 
-                info = core.pose.PDBInfo(pose)
-                pose.pdb_info(info)
+                # Only do renumbering for PyRosetta poses
+                if hasattr(pose, 'pdb_info'):
+                    info = core.pose.PDBInfo(pose)
+                    pose.pdb_info(info)
+                else:
+                    print("Warning: Cannot renumber SimpleStructure. Consider fixing input PDB manually.")
             else:
                 raise Exception( f"Pose {tag} failed input checking.")
 

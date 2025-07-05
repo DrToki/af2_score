@@ -2,8 +2,26 @@
 
 import os, sys
 
-from pyrosetta import *
-from pyrosetta.rosetta import *
+# PyRosetta imports removed - using SimpleStructure instead
+try:
+    from pyrosetta import *
+    from pyrosetta.rosetta import *
+    init( "-beta_nov16 -in:file:silent_struct_type binary -mute all" +
+        " -use_terminal_residues true -mute basic.io.database core.scoring" )
+    PYROSETTA_AVAILABLE = True
+except ImportError:
+    print("Warning: PyRosetta not available. Silent files will not work without PyRosetta.")
+    PYROSETTA_AVAILABLE = False
+
+# Add AF2 structure handling
+sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'af2_initial_guess'))
+try:
+    from simple_structure import SimpleStructure, load_from_pdb_dir, load_from_pdb_list
+    from Bio.PDB import PDBParser, PDBIO
+    BIOPYTHON_AVAILABLE = True
+except ImportError:
+    print("Warning: BioPython not available. Install with: pip install biopython")
+    BIOPYTHON_AVAILABLE = False
 
 import numpy as np
 from collections import OrderedDict
@@ -21,9 +39,6 @@ import util_protein_mpnn as mpnn_util
 parent = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(parent, 'include'))
 from silent_tools import silent_tools
-
-init( "-beta_nov16 -in:file:silent_struct_type binary -mute all" +
-    " -use_terminal_residues true -mute basic.io.database core.scoring" )
 
 def cmd(command, wait=True):
     the_command = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)

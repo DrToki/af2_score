@@ -1,0 +1,24 @@
+name: af2_binder_minimal
+channels:
+  - conda-forge
+  - pytorch
+  - nvidia
+  - defaults
+dependencies:
+  - python=3.9
+  - numpy
+  - scipy
+  - matplotlib
+  - biopython
+  - pytorch
+  - torchvision 
+  - torchaudio
+  - pytorch-cuda=12.1
+  - pip
+  - pip:
+    - jax[cuda12_pip]
+    - dm-haiku
+    - chex
+    - ml-collections
+    - immutabledict
+    - absl-py

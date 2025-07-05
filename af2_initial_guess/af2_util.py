@@ -116,19 +116,24 @@ def parse_initial_guess(all_atom_positions) -> jnp.ndarray:
 
     return jnp.array(templates_all_atom_positions)
 
-def af2_get_atom_positions(pose, tmp_fn) -> Tuple[np.ndarray, np.ndarray]:
+def af2_get_atom_positions(structure, tmp_fn) -> Tuple[np.ndarray, np.ndarray]:
     '''
-    Given a pose, return the AF2 atom positions array and atom mask array for the protein.
+    Given a SimpleStructure or pose, return the AF2 atom positions array and atom mask array for the protein.
     '''
 
-    # write pose to pdb file
-    pose.dump_pdb(tmp_fn)
+    # Check if it's a SimpleStructure or PyRosetta pose
+    if hasattr(structure, 'get_atoms_for_af2'):
+        # It's a SimpleStructure
+        return structure.get_atoms_for_af2()
+    else:
+        # It's a PyRosetta pose, use original method
+        structure.dump_pdb(tmp_fn)
 
-    with open(tmp_fn, 'r') as pdb_file:
-        lines = pdb_file.readlines()
+        with open(tmp_fn, 'r') as pdb_file:
+            lines = pdb_file.readlines()
 
-    # Delete the temporary file
-    os.remove(tmp_fn)
+        # Delete the temporary file
+        os.remove(tmp_fn)
 
     # indices of residues observed in the structure
     idx_s = [int(l[22:26]) for l in lines if l[:4]=="ATOM" and l[12:16].strip()=="CA"]
