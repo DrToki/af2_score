@@ -49,11 +49,28 @@ cd dl_binder_design
 ```
 
 #### Step 2: Create Conda Environment
+
+Choose the appropriate environment based on your system:
+
+#### Option A: CUDA 12 (Recommended for modern GPUs)
 ```bash
-# Create environment from minimal config
 conda env create -f include/af2_binder_minimal.yml
 conda activate af2_binder_minimal
 ```
+
+#### Option B: CUDA 11 (For older GPUs)
+```bash
+conda env create -f include/af2_binder_minimal_cuda11.yml
+conda activate af2_binder_minimal_cuda11
+```
+
+#### Option C: CPU Only (No GPU)
+```bash
+conda env create -f include/af2_binder_minimal_cpu.yml
+conda activate af2_binder_minimal_cpu
+```
+
+**Note**: CPU-only mode will be significantly slower for AF2 predictions.
 
 ### Step 3: Download AlphaFold2 Model Weights
 ```bash
@@ -142,7 +159,9 @@ python include/importtests/proteinmpnn_importtest.py
 
 ## 📦 Conda Environment Files
 
-### Minimal Environment (`include/af2_binder_minimal.yml`)
+### Environment Options
+
+#### Minimal Environment - CUDA 12 (`include/af2_binder_minimal.yml`)
 ```yaml
 name: af2_binder_minimal
 channels:
@@ -152,23 +171,25 @@ channels:
   - defaults
 dependencies:
   - python=3.9
-  - numpy
-  - scipy
-  - matplotlib
+  - numpy, scipy, matplotlib, pandas
   - biopython
-  - pytorch
-  - torchvision 
-  - torchaudio
+  - pytorch, torchvision, torchaudio
   - pytorch-cuda=12.1
-  - pip
+  - tensorflow
+  - pip, wget, git
   - pip:
-    - jax[cuda12_pip]
-    - dm-haiku
-    - chex
-    - ml-collections
-    - immutabledict
-    - absl-py
+    - jax[cuda12_pip]==0.4.20
+    - jaxlib, dm-haiku, dm-tree
+    - ml-collections, ml_dtypes, chex
+    - immutabledict, absl-py, tree
+    - tqdm, requests
 ```
+
+#### CUDA 11 Environment (`include/af2_binder_minimal_cuda11.yml`)
+- Same as above but with `pytorch-cuda=11.8` and `jax[cuda11_pip]`
+
+#### CPU-Only Environment (`include/af2_binder_minimal_cpu.yml`)  
+- Same as above but with `pytorch-cpu`, `tensorflow-cpu`, and `jax[cpu]`
 
 ### Full Environment (`include/af2_binder_full.yml`)
 ```yaml

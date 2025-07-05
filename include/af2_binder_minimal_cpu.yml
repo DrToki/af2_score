@@ -1,8 +1,7 @@
-name: af2_binder_minimal
+name: af2_binder_minimal_cpu
 channels:
   - conda-forge
   - pytorch
-  - nvidia
   - defaults
 dependencies:
   # Core Python and data science
@@ -15,14 +14,13 @@ dependencies:
   # Structure handling
   - biopython
   
-  # Deep learning frameworks
-  - pytorch
-  - torchvision 
+  # Deep learning frameworks (CPU only)
+  - pytorch-cpu
+  - torchvision-cpu
   - torchaudio
-  - pytorch-cuda=12.1
   
-  # TensorFlow (required by AlphaFold2)
-  - tensorflow
+  # TensorFlow (CPU only)
+  - tensorflow-cpu
   
   # Basic utilities
   - pip
@@ -31,8 +29,8 @@ dependencies:
   
   # Python packages via pip
   - pip:
-    # JAX ecosystem (GPU support)
-    - jax[cuda12_pip]==0.4.20
+    # JAX ecosystem (CPU only)
+    - jax[cpu]==0.4.20
     - jaxlib
     
     # Haiku and related

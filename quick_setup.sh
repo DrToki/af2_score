@@ -20,18 +20,31 @@ echo "✅ Conda found: $(conda --version)"
 # Ask user which installation they want
 echo ""
 echo "Select installation type:"
-echo "1) Minimal (PDB files only, no PyRosetta) - Recommended"
-echo "2) Full (PDB + Silent files, requires PyRosetta license)"
+echo "1) Minimal - CUDA 12 (Modern GPUs, Recommended)"
+echo "2) Minimal - CUDA 11 (Older GPUs)"
+echo "3) Minimal - CPU Only (No GPU)"
+echo "4) Full (PDB + Silent files, requires PyRosetta license)"
 echo ""
-read -p "Enter choice (1 or 2): " choice
+read -p "Enter choice (1-4): " choice
 
 case $choice in
     1)
-        echo "📦 Setting up minimal environment..."
+        echo "📦 Setting up minimal environment with CUDA 12..."
         ENV_FILE="include/af2_binder_minimal.yml"
         ENV_NAME="af2_binder_minimal"
         ;;
     2)
+        echo "📦 Setting up minimal environment with CUDA 11..."
+        ENV_FILE="include/af2_binder_minimal_cuda11.yml"
+        ENV_NAME="af2_binder_minimal_cuda11"
+        ;;
+    3)
+        echo "📦 Setting up minimal environment for CPU only..."
+        echo "⚠️  Note: CPU-only mode will be significantly slower"
+        ENV_FILE="include/af2_binder_minimal_cpu.yml"
+        ENV_NAME="af2_binder_minimal_cpu"
+        ;;
+    4)
         echo "📦 Setting up full environment with PyRosetta..."
         echo "⚠️  Note: You must have PyRosetta credentials configured in ~/.condarc"
         ENV_FILE="include/af2_binder_full.yml"
